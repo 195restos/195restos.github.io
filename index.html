@@ -983,13 +983,138 @@
       cursor: pointer;
       line-height: 1;
     }
+    /* ── Password Gate ── */
+    #password-gate {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 32px;
+    }
+    #password-gate::before {
+      content: '';
+      display: block;
+      width: 48px;
+      height: 2px;
+      background: var(--gold);
+    }
+    #password-gate h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(40px, 8vw, 72px);
+      font-weight: 300;
+      letter-spacing: 0.08em;
+      color: var(--text);
+    }
+    #password-gate h2 span { color: var(--gold); }
+    #password-gate-form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    #password-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      letter-spacing: 0.15em;
+      padding: 11px 20px;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 220px;
+    }
+    #password-input:focus { border-color: var(--gold-dim); }
+    #password-input.error { border-color: #a84c4c; animation: shake 0.3s ease; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+    #password-submit {
+      background: none;
+      border: 1px solid var(--gold-dim);
+      color: var(--gold);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      padding: 11px 36px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #password-submit:hover { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+    #password-error {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: #a84c4c;
+      text-transform: uppercase;
+      min-height: 16px;
+    }
   </style>
 </head>
 <body>
 
+<!-- ── Password Gate ── -->
+<div id="password-gate">
+  <h2>195<span>restos</span></h2>
+  <div id="password-gate-form">
+    <input type="password" id="password-input" placeholder="Password" autocomplete="off" />
+    <div id="password-error"></div>
+    <button id="password-submit">Enter</button>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const PASS = 'miam';
+    const SESSION_KEY = '195restos_auth';
+    const gate = document.getElementById('password-gate');
+    const input = document.getElementById('password-input');
+    const submit = document.getElementById('password-submit');
+    const error = document.getElementById('password-error');
+
+    function unlock() {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      gate.style.opacity = '0';
+      gate.style.transition = 'opacity 0.4s ease';
+      setTimeout(() => { gate.style.display = 'none'; }, 400);
+    }
+
+    if (sessionStorage.getItem(SESSION_KEY) === '1') {
+      gate.style.display = 'none';
+    } else {
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => input.focus(), 50);
+    }
+
+    function attempt() {
+      if (input.value === PASS) {
+        document.body.style.overflow = '';
+        unlock();
+      } else {
+        error.textContent = 'Incorrect password';
+        input.classList.add('error');
+        input.value = '';
+        setTimeout(() => { input.classList.remove('error'); error.textContent = ''; }, 1200);
+        input.focus();
+      }
+    }
+
+    submit.addEventListener('click', attempt);
+    input.addEventListener('keydown', function(e) { if (e.key === 'Enter') attempt(); });
+  })();
+</script>
+
 <header>
   <h1>195<span>restos</span></h1>
-  <p class="tagline">A restaurant from every country on Earth</p>
 </header>
 
 <section class="progress-section">
