@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>195restos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
+
+  <!-- Firebase SDK (compat build) -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0b0b0f;
+      --surface: #13131a;
+      --border: #2a2a38;
+      --gold: #c9a84c;
+      --gold-dim: #7a6228;
+      --text: #e8e4d8;
+      --muted: #6e6a5e;
+      --checked-bg: #1a1a10;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      padding: 0 0 80px;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      padding: 64px 24px 40px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header::before {
+      content: '';
+      display: block;
+      width: 48px;
+      height: 2px;
+      background: var(--gold);
+      margin: 0 auto 28px;
+    }
+
+    h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(52px, 10vw, 96px);
+      font-weight: 300;
+      letter-spacing: 0.08em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    h1 span { color: var(--gold); }
+
+    .tagline {
+      margin-top: 14px;
+      font-size: 11px;
+      letter-spacing: 0.3em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    /* ── Progress ── */
+    .progress-section {
+      max-width: 860px;
+      margin: 40px auto 0;
+      padding: 0 24px;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .progress-count {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      font-weight: 300;
+      color: var(--gold);
+    }
+
+    .progress-count span {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .progress-bar-bg {
+      height: 2px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--gold);
+      border-radius: 2px;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+
+    /* ── Wheel Section ── */
+    .wheel-section {
+      max-width: 500px;
+      margin: 56px auto 0;
+      padding: 0 24px;
+      text-align: center;
+    }
+
+    .wheel-section > .section-label {
+      display: block;
+      margin-bottom: 28px;
+    }
+
+    .wheel-outer {
+      position: relative;
+      display: inline-block;
+    }
+
+    .wheel-pointer {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 18px solid var(--gold);
+      z-index: 2;
+    }
+
+    canvas#wheel {
+      display: block;
+      border-radius: 50%;
+    }
+
+    .spin-btn {
+      margin-top: 28px;
+      background: none;
+      border: 1px solid var(--gold-dim);
+      color: var(--gold);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      padding: 13px 44px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .spin-btn:hover:not(:disabled) {
+      background: var(--gold);
+      color: var(--bg);
+      border-color: var(--gold);
+    }
+
+    .spin-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Result */
+    .result-box {
+      margin-top: 32px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+      display: none;
+    }
+
+    .result-box.show { display: block; }
+
+    .result-label {
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .result-country {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 36px;
+      font-weight: 300;
+      color: var(--gold);
+      margin-bottom: 20px;
+      line-height: 1.1;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .mark-btn {
+      background: var(--gold);
+      color: var(--bg);
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 9px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .mark-btn:hover { opacity: 0.85; }
+
+    .mark-btn.already {
+      background: var(--checked-bg);
+      color: var(--gold-dim);
+      border: 1px solid var(--gold-dim);
+      cursor: default;
+    }
+
+    .respin-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 9px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .respin-btn:hover { border-color: var(--muted); color: var(--text); }
+
+    /* ── Divider ── */
+    .divider {
+      max-width: 860px;
+      margin: 56px auto 0;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .divider span {
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      color: var(--muted);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* ── Search ── */
+    .search-wrap {
+      max-width: 860px;
+      margin: 28px auto 0;
+      padding: 0 24px;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      padding: 10px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-wrap input::placeholder { color: var(--muted); }
+    .search-wrap input:focus { border-color: var(--gold-dim); }
+
+    /* ── Grid ── */
+    .grid {
+      max-width: 860px;
+      margin: 28px auto 0;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 6px;
+    }
+
+    /* ── Country Item ── */
+    .country-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+      user-select: none;
+      border: 1px solid transparent;
+    }
+
+    .country-item:hover { background: var(--surface); border-color: var(--border); }
+    .country-item.visited { background: var(--checked-bg); border-color: var(--gold-dim); }
+    .country-item.highlighted { border-color: var(--gold) !important; background: #1f1a08 !important; }
+
+    .checkmark {
+      width: 16px;
+      height: 16px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .country-item.visited .checkmark { background: var(--gold); border-color: var(--gold); }
+
+    .checkmark::after {
+      content: '';
+      display: block;
+      width: 5px;
+      height: 8px;
+      border-right: 1.5px solid var(--bg);
+      border-bottom: 1.5px solid var(--bg);
+      transform: rotate(40deg) translateY(-1px);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .country-item.visited .checkmark::after { opacity: 1; }
+
+    .country-name {
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      transition: color 0.15s;
+    }
+
+    .country-item.visited .country-name { color: var(--gold); }
+    .country-flag { font-size: 14px; flex-shrink: 0; line-height: 1; }
+    .country-item.hidden { display: none; }
+
+    /* ── Controls ── */
+    .controls {
+      max-width: 860px;
+      margin: 32px auto 0;
+      padding: 0 24px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* ── Country item extras ── */
+    .country-meta {
+      margin-left: auto;
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .has-notes-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--gold);
+      display: none;
+    }
+    .country-item.has-notes .has-notes-dot { display: block; }
+
+    /* ── Modal overlay ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* ── Modal box ── */
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: translateY(12px);
+      transition: transform 0.2s;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 24px 24px 20px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      z-index: 1;
+    }
+    .modal-flag { font-size: 28px; line-height: 1; }
+    .modal-country-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      font-weight: 300;
+      color: var(--text);
+      flex: 1;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+      transition: color 0.15s;
+    }
+    .modal-close:hover { color: var(--text); }
+
+    .modal-body { padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+
+    /* Visited toggle inside modal */
+    .modal-visited-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-visited-label {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: all 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-track { background: var(--gold-dim); }
+    .toggle-switch input:checked + .toggle-track::after {
+      left: 23px;
+      background: var(--gold);
+    }
+
+    /* Description */
+    .modal-field-label {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .modal-textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      padding: 12px;
+      resize: vertical;
+      min-height: 90px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .modal-textarea:focus { border-color: var(--gold-dim); }
+    .modal-textarea::placeholder { color: var(--muted); }
+
+    /* Photo upload */
+    .photo-drop-zone {
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .photo-drop-zone:hover, .photo-drop-zone.dragover {
+      border-color: var(--gold-dim);
+      background: #1a1a10;
+    }
+    .photo-drop-zone p {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+    }
+    .photo-drop-zone span { color: var(--gold); }
+    #photo-input { display: none; }
+
+    /* Photo grid */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+    }
+    .photo-thumb {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .photo-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .photo-delete {
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 20px; height: 20px;
+      background: rgba(0,0,0,0.7);
+      border: none;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 12px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .photo-thumb:hover .photo-delete { opacity: 1; }
+
+    /* Modal footer */
+    .modal-footer {
+      padding: 16px 24px 24px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .modal-save-btn {
+      background: var(--gold);
+      color: var(--bg);
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 10px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .modal-save-btn:hover { opacity: 0.85; }
+    .modal-cancel-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 10px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .modal-cancel-btn:hover { border-color: var(--muted); color: var(--text); }
+
+    /* ── Tab nav ── */
+    .tab-nav {
+      max-width: 860px;
+      margin: 40px auto 0;
+      padding: 0 24px;
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      padding: 10px 20px 10px 0;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    /* ── Tab panels ── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Recent feed ── */
+    .recent-feed {
+      max-width: 680px;
+      margin: 48px auto 0;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 56px;
+    }
+
+    .recent-empty {
+      max-width: 680px;
+      margin: 80px auto 0;
+      padding: 0 24px;
+      text-align: center;
+    }
+    .recent-empty p {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .recent-entry {
+      border-left: 1px solid var(--border);
+      padding-left: 28px;
+      position: relative;
+    }
+    .recent-entry::before {
+      content: '';
+      position: absolute;
+      left: -4px;
+      top: 6px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--gold);
+      border: 1px solid var(--bg);
+    }
+
+    .recent-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .recent-flag { font-size: 22px; line-height: 1; }
+    .recent-country {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      font-weight: 300;
+      color: var(--text);
+    }
+    .recent-date {
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    .recent-photos {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .recent-photo {
+      aspect-ratio: 4/3;
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .recent-photo img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s;
+    }
+    .recent-photo:hover img { transform: scale(1.04); }
+
+    .recent-description {
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--text);
+      opacity: 0.85;
+    }
+
+    .recent-edit-btn {
+      margin-top: 14px;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .recent-edit-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+
+    /* ── Lightbox ── */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .lightbox.open { opacity: 1; pointer-events: all; }
+    .lightbox img {
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 3px;
+    }
+    .lightbox-close {
+      position: absolute;
+      top: 20px; right: 24px;
+      background: none; border: none;
+      color: #fff; font-size: 24px;
+      cursor: pointer; opacity: 0.7;
+      transition: opacity 0.15s;
+    }
+    .lightbox-close:hover { opacity: 1; }
+
+    /* ── Comments ── */
+    .comments-section {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px dashed var(--border);
+    }
+    .comments-header {
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .comments-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .comment {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .comment-avatar {
+      width: 30px; height: 30px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--checked-bg);
+      border: 1px solid var(--gold-dim);
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 14px;
+      text-transform: uppercase;
+    }
+    .comment-body { flex: 1; min-width: 0; }
+    .comment-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    .comment-name {
+      font-size: 12px;
+      color: var(--gold);
+      letter-spacing: 0.05em;
+    }
+    .comment-date {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .comment-delete {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 0 4px;
+      transition: color 0.15s;
+    }
+    .comment-delete:hover { color: var(--gold); }
+    .comment-text {
+      font-size: 12px;
+      line-height: 1.65;
+      color: var(--text);
+      opacity: 0.9;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .comment-photo {
+      margin-top: 8px;
+      max-width: 200px;
+      aspect-ratio: 4/3;
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .comment-photo img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Comment form */
+    .comment-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .comment-form input[type="text"],
+    .comment-form textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .comment-form input[type="text"]:focus,
+    .comment-form textarea:focus { border-color: var(--gold-dim); }
+    .comment-form textarea {
+      min-height: 60px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    .comment-form input::placeholder,
+    .comment-form textarea::placeholder { color: var(--muted); }
+    .comment-form-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .comment-form-row input[type="text"] { flex: 1; min-width: 140px; }
+    .comment-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .comment-photo-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 7px 12px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .comment-photo-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+    .comment-photo-btn.has-photo { border-color: var(--gold-dim); color: var(--gold); }
+    .comment-submit {
+      background: var(--gold);
+      color: var(--bg);
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      padding: 8px 18px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .comment-submit:hover:not(:disabled) { opacity: 0.85; }
+    .comment-submit:disabled { opacity: 0.35; cursor: not-allowed; }
+    .comment-photo-preview {
+      position: relative;
+      width: 90px;
+      aspect-ratio: 1;
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid var(--gold-dim);
+    }
+    .comment-photo-preview img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .comment-photo-preview button {
+      position: absolute;
+      top: 2px; right: 2px;
+      width: 18px; height: 18px;
+      background: rgba(0,0,0,0.75);
+      border: none;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 10px;
+      cursor: pointer;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>195<span>restos</span></h1>
+  <p class="tagline">A restaurant from every country on Earth</p>
+</header>
+
+<section class="progress-section">
+  <div class="progress-header">
+    <span class="section-label">Countries visited</span>
+    <span class="progress-count" id="count">0 <span>/ 195</span></span>
+  </div>
+  <div class="progress-bar-bg">
+    <div class="progress-bar-fill" id="bar"></div>
+  </div>
+</section>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('tracker')">Tracker</button>
+  <button class="tab-btn" onclick="switchTab('recent')">Recent</button>
+</nav>
+
+<!-- ── TRACKER TAB ── -->
+<div class="tab-panel active" id="tab-tracker">
+
+<section class="wheel-section">
+  <span class="section-label">Spin to decide</span>
+  <div class="wheel-outer">
+    <div class="wheel-pointer"></div>
+    <canvas id="wheel" width="380" height="380"></canvas>
+  </div>
+  <br>
+  <button class="spin-btn" id="spin-btn" onclick="spin()">Spin</button>
+  <div class="result-box" id="result-box">
+    <p class="result-label">Next up</p>
+    <p class="result-country" id="result-country"></p>
+    <div class="result-actions">
+      <button class="mark-btn" id="mark-btn" onclick="markWinner()">Mark as visited</button>
+      <button class="respin-btn" onclick="spin()">Spin again</button>
+    </div>
+  </div>
+</section>
+
+<div class="divider"><span>All countries</span></div>
+
+<div class="search-wrap">
+  <input type="text" id="search" placeholder="Search countries…" autocomplete="off" />
+</div>
+
+<div class="grid" id="grid"></div>
+
+</div><!-- end tab-tracker -->
+
+<!-- ── RECENT TAB ── -->
+<div class="tab-panel" id="tab-recent">
+  <div class="recent-feed" id="recent-feed"></div>
+  <div class="recent-empty" id="recent-empty" style="display:none">
+    <p>No visits logged yet</p>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" />
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <span class="modal-flag" id="modal-flag"></span>
+      <span class="modal-country-name" id="modal-country-name"></span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-visited-row">
+        <span class="modal-visited-label">Mark as visited</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="modal-visited-toggle" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div>
+        <p class="modal-field-label">Notes about the meal</p>
+        <textarea class="modal-textarea" id="modal-description" placeholder="Restaurant name, what you ate, how it was…"></textarea>
+      </div>
+      <div>
+        <p class="modal-field-label">Photos</p>
+        <div class="photo-grid" id="photo-grid"></div>
+        <div class="photo-drop-zone" id="drop-zone" onclick="document.getElementById('photo-input').click()"
+             ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+          <p>Drop photos here or <span>click to upload</span></p>
+        </div>
+        <input type="file" id="photo-input" accept="image/*" multiple onchange="handleFileInput(event)" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-cancel-btn" onclick="closeModal()">Cancel</button>
+      <button class="modal-save-btn" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const COUNTRIES = [
+    "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda",
+    "Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain",
+    "Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia",
+    "Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso",
+    "Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic",
+    "Chad","Chile","China","Colombia","Comoros","Congo (Republic)","Congo (DR)",
+    "Costa Rica","Croatia","Cuba","Cyprus","Czech Republic","Denmark","Djibouti",
+    "Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea",
+    "Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon",
+    "Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea",
+    "Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia",
+    "Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan",
+    "Kenya","Kiribati","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho",
+    "Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi",
+    "Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius",
+    "Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco",
+    "Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand",
+    "Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman",
+    "Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru",
+    "Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda",
+    "Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa",
+    "San Marino","São Tomé and Príncipe","Saudi Arabia","Senegal","Serbia","Seychelles",
+    "Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia",
+    "South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname",
+    "Sweden","Switzerland","Syria","Tajikistan","Tanzania","Thailand","Timor-Leste",
+    "Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu",
+    "Uganda","Ukraine","United Arab Emirates","United Kingdom","United States",
+    "Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen",
+    "Zambia","Zimbabwe"
+  ];
+
+  const FLAGS = {
+    "Afghanistan":"🇦🇫","Albania":"🇦🇱","Algeria":"🇩🇿","Andorra":"🇦🇩","Angola":"🇦🇴",
+    "Antigua and Barbuda":"🇦🇬","Argentina":"🇦🇷","Armenia":"🇦🇲","Australia":"🇦🇺",
+    "Austria":"🇦🇹","Azerbaijan":"🇦🇿","Bahamas":"🇧🇸","Bahrain":"🇧🇭","Bangladesh":"🇧🇩",
+    "Barbados":"🇧🇧","Belarus":"🇧🇾","Belgium":"🇧🇪","Belize":"🇧🇿","Benin":"🇧🇯",
+    "Bhutan":"🇧🇹","Bolivia":"🇧🇴","Bosnia and Herzegovina":"🇧🇦","Botswana":"🇧🇼",
+    "Brazil":"🇧🇷","Brunei":"🇧🇳","Bulgaria":"🇧🇬","Burkina Faso":"🇧🇫","Burundi":"🇧🇮",
+    "Cabo Verde":"🇨🇻","Cambodia":"🇰🇭","Cameroon":"🇨🇲","Canada":"🇨🇦",
+    "Central African Republic":"🇨🇫","Chad":"🇹🇩","Chile":"🇨🇱","China":"🇨🇳",
+    "Colombia":"🇨🇴","Comoros":"🇰🇲","Congo (Republic)":"🇨🇬","Congo (DR)":"🇨🇩",
+    "Costa Rica":"🇨🇷","Croatia":"🇭🇷","Cuba":"🇨🇺","Cyprus":"🇨🇾","Czech Republic":"🇨🇿",
+    "Denmark":"🇩🇰","Djibouti":"🇩🇯","Dominica":"🇩🇲","Dominican Republic":"🇩🇴",
+    "Ecuador":"🇪🇨","Egypt":"🇪🇬","El Salvador":"🇸🇻","Equatorial Guinea":"🇬🇶",
+    "Eritrea":"🇪🇷","Estonia":"🇪🇪","Eswatini":"🇸🇿","Ethiopia":"🇪🇹","Fiji":"🇫🇯",
+    "Finland":"🇫🇮","France":"🇫🇷","Gabon":"🇬🇦","Gambia":"🇬🇲","Georgia":"🇬🇪",
+    "Germany":"🇩🇪","Ghana":"🇬🇭","Greece":"🇬🇷","Grenada":"🇬🇩","Guatemala":"🇬🇹",
+    "Guinea":"🇬🇳","Guinea-Bissau":"🇬🇼","Guyana":"🇬🇾","Haiti":"🇭🇹","Honduras":"🇭🇳",
+    "Hungary":"🇭🇺","Iceland":"🇮🇸","India":"🇮🇳","Indonesia":"🇮🇩","Iran":"🇮🇷",
+    "Iraq":"🇮🇶","Ireland":"🇮🇪","Israel":"🇮🇱","Italy":"🇮🇹","Jamaica":"🇯🇲",
+    "Japan":"🇯🇵","Jordan":"🇯🇴","Kazakhstan":"🇰🇿","Kenya":"🇰🇪","Kiribati":"🇰🇮",
+    "Kuwait":"🇰🇼","Kyrgyzstan":"🇰🇬","Laos":"🇱🇦","Latvia":"🇱🇻","Lebanon":"🇱🇧",
+    "Lesotho":"🇱🇸","Liberia":"🇱🇷","Libya":"🇱🇾","Liechtenstein":"🇱🇮","Lithuania":"🇱🇹",
+    "Luxembourg":"🇱🇺","Madagascar":"🇲🇬","Malawi":"🇲🇼","Malaysia":"🇲🇾","Maldives":"🇲🇻",
+    "Mali":"🇲🇱","Malta":"🇲🇹","Marshall Islands":"🇲🇭","Mauritania":"🇲🇷","Mauritius":"🇲🇺",
+    "Mexico":"🇲🇽","Micronesia":"🇫🇲","Moldova":"🇲🇩","Monaco":"🇲🇨","Mongolia":"🇲🇳",
+    "Montenegro":"🇲🇪","Morocco":"🇲🇦","Mozambique":"🇲🇿","Myanmar":"🇲🇲","Namibia":"🇳🇦",
+    "Nauru":"🇳🇷","Nepal":"🇳🇵","Netherlands":"🇳🇱","New Zealand":"🇳🇿","Nicaragua":"🇳🇮",
+    "Niger":"🇳🇪","Nigeria":"🇳🇬","North Korea":"🇰🇵","North Macedonia":"🇲🇰","Norway":"🇳🇴",
+    "Oman":"🇴🇲","Pakistan":"🇵🇰","Palau":"🇵🇼","Palestine":"🇵🇸","Panama":"🇵🇦",
+    "Papua New Guinea":"🇵🇬","Paraguay":"🇵🇾","Peru":"🇵🇪","Philippines":"🇵🇭",
+    "Poland":"🇵🇱","Portugal":"🇵🇹","Qatar":"🇶🇦","Romania":"🇷🇴","Russia":"🇷🇺",
+    "Rwanda":"🇷🇼","Saint Kitts and Nevis":"🇰🇳","Saint Lucia":"🇱🇨",
+    "Saint Vincent and the Grenadines":"🇻🇨","Samoa":"🇼🇸","San Marino":"🇸🇲",
+    "São Tomé and Príncipe":"🇸🇹","Saudi Arabia":"🇸🇦","Senegal":"🇸🇳","Serbia":"🇷🇸",
+    "Seychelles":"🇸🇨","Sierra Leone":"🇸🇱","Singapore":"🇸🇬","Slovakia":"🇸🇰",
+    "Slovenia":"🇸🇮","Solomon Islands":"🇸🇧","Somalia":"🇸🇴","South Africa":"🇿🇦",
+    "South Korea":"🇰🇷","South Sudan":"🇸🇸","Spain":"🇪🇸","Sri Lanka":"🇱🇰","Sudan":"🇸🇩",
+    "Suriname":"🇸🇷","Sweden":"🇸🇪","Switzerland":"🇨🇭","Syria":"🇸🇾","Tajikistan":"🇹🇯",
+    "Tanzania":"🇹🇿","Thailand":"🇹🇭","Timor-Leste":"🇹🇱","Togo":"🇹🇬","Tonga":"🇹🇴",
+    "Trinidad and Tobago":"🇹🇹","Tunisia":"🇹🇳","Turkey":"🇹🇷","Turkmenistan":"🇹🇲",
+    "Tuvalu":"🇹🇻","Uganda":"🇺🇬","Ukraine":"🇺🇦","United Arab Emirates":"🇦🇪",
+    "United Kingdom":"🇬🇧","United States":"🇺🇸","Uruguay":"🇺🇾","Uzbekistan":"🇺🇿",
+    "Vanuatu":"🇻🇺","Vatican City":"🇻🇦","Venezuela":"🇻🇪","Vietnam":"🇻🇳",
+    "Yemen":"🇾🇪","Zambia":"🇿🇲","Zimbabwe":"🇿🇼"
+  };
+
+  /* ========================================================================
+     FIREBASE SETUP
+     ------------------------------------------------------------------------
+     One-time setup (≈5 min):
+     1. Go to https://console.firebase.google.com/ and click "Add project".
+        Name it (e.g. "195restos"). You can disable Google Analytics.
+     2. Inside the project, click the </> icon ("Web") to register a web app.
+        Give it a nickname; you do NOT need Firebase Hosting.
+     3. Copy the firebaseConfig object Firebase shows you and paste it below
+        in place of the placeholder.
+     4. In the left sidebar: Build → Realtime Database → Create Database.
+        Pick a region, choose "Start in test mode", then create.
+     5. Open the "Rules" tab of the database and replace with:
+          {
+            "rules": {
+              ".read": true,
+              ".write": true
+            }
+          }
+        Click "Publish". (Same trust model as your PIN — the PIN gate is
+        client-side. Firebase URLs are not easily guessable, so this is
+        fine for a personal hobby site.)
+     ======================================================================== */
+  const firebaseConfig = {
+    apiKey: "AIzaSyAh2OcHLsMCq0q5ujA7z82GpM5c66B8px4",
+    authDomain: "restos-fd730.firebaseapp.com",
+    // NOTE: databaseURL must point to your Realtime Database.
+    // Open Firebase console → Build → Realtime Database — the URL shown at
+    // the top of that page is the correct value. The line below is the
+    // standard default for the US region; if your DB lives elsewhere
+    // (e.g. europe-west1), replace this with what the console shows.
+    databaseURL: "https://restos-fd730-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "restos-fd730",
+    storageBucket: "restos-fd730.firebasestorage.app",
+    messagingSenderId: "964120747657",
+    appId: "1:964120747657:web:e188245e2e027d71cef058"
+  };
+
+  const FIREBASE_READY = firebaseConfig.apiKey && firebaseConfig.apiKey !== "REPLACE_ME";
+  let db = null;
+  if (FIREBASE_READY) {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+  } else {
+    console.warn('[195restos] Firebase config not set. Edit index.html and replace the placeholder firebaseConfig.');
+  }
+
+  const NAME_KEY     = '195restos_lastname';
+  const OWNER_PIN    = '6525';
+  const UNLOCK_KEY   = '195restos_unlocked';
+
+  function isUnlocked() {
+    return sessionStorage.getItem(UNLOCK_KEY) === '1';
+  }
+  function requestUnlock() {
+    if (isUnlocked()) return true;
+    const pin = prompt('Enter PIN to edit posts:');
+    if (pin === null) return false;
+    if (pin === OWNER_PIN) {
+      sessionStorage.setItem(UNLOCK_KEY, '1');
+      return true;
+    }
+    alert('Incorrect PIN.');
+    return false;
+  }
+  const N_SEG = 12;
+  const SIZE = 380;
+  const cx = SIZE / 2, cy = SIZE / 2, r = SIZE / 2 - 8;
+
+  /* ── Cloud sync ── */
+  // Firebase RTDB doesn't store arrays — they come back as objects keyed by
+  // index. Normalize them back to arrays on read.
+  function normalizeArrayObj(obj) {
+    if (obj == null) return [];
+    if (Array.isArray(obj)) return obj;
+    return Object.keys(obj)
+      .sort((a, b) => Number(a) - Number(b))
+      .map(k => obj[k]);
+  }
+
+  function save(d)         { return db ? db.ref('visited').set(d || {})        : Promise.resolve(); }
+  function saveMeals()     { return db ? db.ref('meals').set(meals || {})       : Promise.resolve(); }
+  function saveTimes()     { return db ? db.ref('timestamps').set(timestamps || {}) : Promise.resolve(); }
+  function saveComments()  { return db ? db.ref('comments').set(comments || {}) : Promise.resolve(); }
+
+  let visited = {};
+  let meals = {};
+  let timestamps = {};
+  let comments = {};
+  // Per-entry pending photo (base64) keyed by country, used by the comment form
+  const pendingPhotos = {};
+
+  function attachListeners() {
+    if (!db) return;
+    db.ref('visited').on('value', snap => {
+      visited = snap.val() || {};
+      applyVisitedToGrid();
+      if (activeTab === 'recent') safeRenderRecent();
+    });
+    db.ref('meals').on('value', snap => {
+      const raw = snap.val() || {};
+      Object.keys(raw).forEach(c => {
+        if (raw[c] && raw[c].photos != null) {
+          raw[c].photos = normalizeArrayObj(raw[c].photos);
+        }
+      });
+      meals = raw;
+      applyMealsToGrid();
+      if (activeTab === 'recent') safeRenderRecent();
+    });
+    db.ref('timestamps').on('value', snap => {
+      timestamps = snap.val() || {};
+      if (activeTab === 'recent') safeRenderRecent();
+    });
+    db.ref('comments').on('value', snap => {
+      const raw = snap.val() || {};
+      Object.keys(raw).forEach(c => { raw[c] = normalizeArrayObj(raw[c]); });
+      comments = raw;
+      if (activeTab === 'recent') safeRenderRecent();
+    });
+  }
+
+  // Avoid wiping a comment form mid-typing when a remote update arrives
+  function safeRenderRecent() {
+    const focused = document.activeElement;
+    const tag = focused && focused.tagName;
+    if ((tag === 'INPUT' || tag === 'TEXTAREA') && focused.closest('.comment-form')) return;
+    renderRecent();
+  }
+
+  function applyVisitedToGrid() {
+    document.querySelectorAll('.country-item').forEach(item => {
+      const country = COUNTRIES.find(c => c.toLowerCase() === item.dataset.name);
+      item.classList.toggle('visited', !!visited[country]);
+    });
+    updateProgress();
+  }
+
+  function applyMealsToGrid() {
+    document.querySelectorAll('.country-item').forEach(item => {
+      const country = COUNTRIES.find(c => c.toLowerCase() === item.dataset.name);
+      const m = meals[country];
+      const has = m && (m.description || (m.photos && m.photos.length));
+      item.classList.toggle('has-notes', !!has);
+    });
+  }
+
+  /* ── Modal state ── */
+  let modalCountry = null;
+  let modalPhotos = []; // array of base64 strings for current modal session
+
+  function openModal(country) {
+    if (!requestUnlock()) return;
+    modalCountry = country;
+    const data = meals[country] || {};
+    modalPhotos = data.photos ? [...data.photos] : [];
+
+    document.getElementById('modal-flag').textContent = FLAGS[country] || '';
+    document.getElementById('modal-country-name').textContent = country;
+    document.getElementById('modal-visited-toggle').checked = !!visited[country];
+    document.getElementById('modal-description').value = data.description || '';
+    renderModalPhotos();
+
+    document.getElementById('modal-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+    modalCountry = null;
+    modalPhotos = [];
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  }
+
+  function saveModal() {
+    if (!modalCountry) return;
+    const isVisited = document.getElementById('modal-visited-toggle').checked;
+    const description = document.getElementById('modal-description').value.trim();
+
+    // Update visited
+    const wasVisited = !!visited[modalCountry];
+    visited[modalCountry] = isVisited;
+    if (isVisited && !wasVisited) timestamps[modalCountry] = Date.now();
+    if (!isVisited) delete timestamps[modalCountry];
+    save(visited);
+    saveTimes();
+
+    // Update meals
+    if (description || modalPhotos.length) {
+      meals[modalCountry] = { description, photos: modalPhotos };
+    } else {
+      delete meals[modalCountry];
+    }
+    saveMeals();
+
+    // Update grid item
+    const el = document.querySelector(`.country-item[data-name="${modalCountry.toLowerCase()}"]`);
+    if (el) {
+      el.classList.toggle('visited', isVisited);
+      const hasnotes = description || modalPhotos.length;
+      el.classList.toggle('has-notes', !!hasnotes);
+    }
+
+    updateProgress();
+    closeModal();
+  }
+
+  /* ── Photo helpers ── */
+  function renderModalPhotos() {
+    const grid = document.getElementById('photo-grid');
+    grid.innerHTML = '';
+    modalPhotos.forEach((src, i) => {
+      const thumb = document.createElement('div');
+      thumb.className = 'photo-thumb';
+      thumb.innerHTML = `<img src="${src}" /><button class="photo-delete" onclick="deletePhoto(${i})">✕</button>`;
+      grid.appendChild(thumb);
+    });
+  }
+
+  function deletePhoto(i) {
+    modalPhotos.splice(i, 1);
+    renderModalPhotos();
+  }
+
+  function processFiles(files) {
+    [...files].forEach(file => {
+      if (!file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        // Resize to max 1200px to keep storage small
+        const img = new Image();
+        img.onload = () => {
+          const MAX = 1200;
+          const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          modalPhotos.push(canvas.toDataURL('image/jpeg', 0.82));
+          renderModalPhotos();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function handleFileInput(e) { processFiles(e.target.files); e.target.value = ''; }
+  function handleDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('dragover'); }
+  function handleDragLeave() { document.getElementById('drop-zone').classList.remove('dragover'); }
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('dragover');
+    processFiles(e.dataTransfer.files);
+  }
+
+  // Keyboard close
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeLightbox(); } });
+
+  /* ── Tabs ── */
+  let activeTab = 'tracker';
+  function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', ['tracker','recent'][i] === tab);
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    if (tab === 'recent') renderRecent();
+  }
+
+  /* ── Recent feed ── */
+  function formatDate(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function renderRecent() {
+    const feed = document.getElementById('recent-feed');
+    const empty = document.getElementById('recent-empty');
+    feed.innerHTML = '';
+
+    // All visited countries that have a timestamp or any meal data, sorted newest first
+    const entries = COUNTRIES
+      .filter(c => visited[c])
+      .sort((a, b) => (timestamps[b] || 0) - (timestamps[a] || 0));
+
+    if (!entries.length) {
+      feed.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+    feed.style.display = 'flex';
+    empty.style.display = 'none';
+
+    entries.forEach(country => {
+      const data = meals[country] || {};
+      const ts = timestamps[country];
+      const hasPhotos = data.photos && data.photos.length;
+      const hasDesc = data.description;
+
+      const entry = document.createElement('div');
+      entry.className = 'recent-entry';
+
+      let photosHTML = '';
+      if (hasPhotos) {
+        photosHTML = `<div class="recent-photos">` +
+          data.photos.map((src, i) =>
+            `<div class="recent-photo" onclick="openLightbox('${country}', ${i})">
+               <img src="${src}" loading="lazy" />
+             </div>`
+          ).join('') +
+        `</div>`;
+      }
+
+      const descHTML = hasDesc
+        ? `<p class="recent-description">${data.description.replace(/\n/g, '<br>')}</p>`
+        : '';
+
+      const noDataNote = !hasPhotos && !hasDesc
+        ? `<p class="recent-description" style="color:var(--muted);font-style:italic">No notes yet.</p>`
+        : '';
+
+      const safeCountry = country.replace(/'/g, "\\'");
+      entry.innerHTML = `
+        <div class="recent-meta">
+          <span class="recent-flag">${FLAGS[country] || ''}</span>
+          <span class="recent-country">${country}</span>
+          ${ts ? `<span class="recent-date">${formatDate(ts)}</span>` : ''}
+        </div>
+        ${photosHTML}
+        ${descHTML}
+        ${noDataNote}
+        <button class="recent-edit-btn" onclick="openModal('${safeCountry}')">Edit entry</button>
+        ${renderComments(country)}
+      `;
+      feed.appendChild(entry);
+    });
+  }
+
+  /* ── Comments ── */
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  function formatCommentDate(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const now = new Date();
+    const sameDay = d.toDateString() === now.toDateString();
+    if (sameDay) {
+      return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+
+  function renderComments(country) {
+    const list = comments[country] || [];
+    const safe = country.replace(/'/g, "\\'");
+    const lastName = localStorage.getItem(NAME_KEY) || '';
+
+    const itemsHTML = list.map(c => {
+      const initial = (c.name || '?').trim().charAt(0) || '?';
+      const photoHTML = c.photo
+        ? `<div class="comment-photo" onclick="openCommentPhoto('${safe}', '${c.id}')">
+             <img src="${c.photo}" loading="lazy" />
+           </div>`
+        : '';
+      return `
+        <div class="comment" data-id="${c.id}">
+          <div class="comment-avatar">${escapeHTML(initial)}</div>
+          <div class="comment-body">
+            <div class="comment-meta">
+              <span class="comment-name">${escapeHTML(c.name || 'Anon')}</span>
+              <span class="comment-date">${formatCommentDate(c.ts)}</span>
+              <button class="comment-delete" title="Delete comment"
+                onclick="deleteComment('${safe}', '${c.id}')">✕</button>
+            </div>
+            <div class="comment-text">${escapeHTML(c.text || '')}</div>
+            ${photoHTML}
+          </div>
+        </div>`;
+    }).join('');
+
+    const headerLabel = list.length
+      ? `${list.length} ${list.length === 1 ? 'reply' : 'replies'}`
+      : 'Replies';
+
+    return `
+      <div class="comments-section">
+        <div class="comments-header">${headerLabel}</div>
+        ${list.length ? `<div class="comments-list">${itemsHTML}</div>` : ''}
+        <form class="comment-form" onsubmit="submitComment(event, '${safe}')">
+          <div class="comment-form-row">
+            <input type="text" name="name" placeholder="Your name" maxlength="40"
+              value="${escapeHTML(lastName)}" required />
+          </div>
+          <textarea name="text" placeholder="Add a comment…" maxlength="1000"></textarea>
+          <div id="photo-preview-${safe.replace(/[^a-z0-9]/gi,'_')}"></div>
+          <div class="comment-actions">
+            <button type="button" class="comment-photo-btn"
+              onclick="triggerCommentPhoto('${safe}', this)">
+              <span>＋ Photo</span>
+            </button>
+            <button type="submit" class="comment-submit">Post reply</button>
+          </div>
+        </form>
+      </div>`;
+  }
+
+  function previewKey(country) {
+    return 'photo-preview-' + country.replace(/[^a-z0-9]/gi, '_');
+  }
+
+  function triggerCommentPhoto(country, btn) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = () => {
+      const file = input.files[0];
+      if (!file || !file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX = 1200;
+          const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          pendingPhotos[country] = dataUrl;
+          renderPendingPhoto(country, btn);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  }
+
+  function renderPendingPhoto(country, btn) {
+    const container = document.getElementById(previewKey(country));
+    if (!container) return;
+    const photo = pendingPhotos[country];
+    if (!photo) {
+      container.innerHTML = '';
+      if (btn) btn.classList.remove('has-photo');
+      return;
+    }
+    const safe = country.replace(/'/g, "\\'");
+    container.innerHTML = `
+      <div class="comment-photo-preview">
+        <img src="${photo}" />
+        <button type="button" onclick="clearPendingPhoto('${safe}')">✕</button>
+      </div>`;
+    if (btn) btn.classList.add('has-photo');
+  }
+
+  function clearPendingPhoto(country) {
+    delete pendingPhotos[country];
+    const container = document.getElementById(previewKey(country));
+    if (container) container.innerHTML = '';
+    // Reset the button styling
+    document.querySelectorAll('.comment-photo-btn.has-photo').forEach(b => {
+      // best-effort: clear all "has-photo" markers; they'll re-apply on next add
+      b.classList.remove('has-photo');
+    });
+  }
+
+  function submitComment(e, country) {
+    e.preventDefault();
+    if (!FIREBASE_READY || !db) {
+      alert('Cloud storage is not configured yet. See the Firebase setup notes at the top of the <script> in index.html.');
+      return;
+    }
+    const form = e.target;
+    const name = form.name.value.trim();
+    const text = form.text.value.trim();
+    const photo = pendingPhotos[country] || null;
+    if (!name || (!text && !photo)) return;
+
+    localStorage.setItem(NAME_KEY, name);
+
+    const ref = db.ref('comments/' + country).push();
+    const entry = { id: ref.key, name, text, photo, ts: Date.now() };
+    ref.set(entry).then(() => {
+      delete pendingPhotos[country];
+      renderRecent();
+    }).catch(err => {
+      alert('Could not post comment: ' + err.message);
+    });
+  }
+
+  function deleteComment(country, id) {
+    if (!requestUnlock()) return;
+    if (!confirm('Delete this comment?')) return;
+    if (!db) return;
+    db.ref('comments/' + country + '/' + id).remove();
+  }
+
+  function openCommentPhoto(country, id) {
+    const c = (comments[country] || []).find(x => x.id === id);
+    if (!c || !c.photo) return;
+    document.getElementById('lightbox-img').src = c.photo;
+    document.getElementById('lightbox').classList.add('open');
+  }
+
+  /* ── Lightbox ── */
+  let lightboxPhotos = [];
+  let lightboxIdx = 0;
+
+  function openLightbox(country, idx) {
+    const data = meals[country] || {};
+    lightboxPhotos = data.photos || [];
+    lightboxIdx = idx;
+    document.getElementById('lightbox-img').src = lightboxPhotos[idx];
+    document.getElementById('lightbox').classList.add('open');
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+  }
+  let segments = [];
+  let currentAngle = 0;
+  let spinning = false;
+  let winner = null;
+
+  const canvas = document.getElementById('wheel');
+  const ctx2d = canvas.getContext('2d');
+
+  function drawWheel(hi = -1) {
+    ctx2d.clearRect(0, 0, SIZE, SIZE);
+    const n = segments.length;
+    if (!n) return;
+    const arc = (2 * Math.PI) / n;
+
+    for (let i = 0; i < n; i++) {
+      const s = currentAngle + i * arc;
+      const e = s + arc;
+      const mid = s + arc / 2;
+
+      ctx2d.beginPath();
+      ctx2d.moveTo(cx, cy);
+      ctx2d.arc(cx, cy, r, s, e);
+      ctx2d.closePath();
+      ctx2d.fillStyle = i === hi ? '#2b2300' : (i % 2 === 0 ? '#13131a' : '#1b1b26');
+      ctx2d.fill();
+      ctx2d.strokeStyle = i === hi ? '#c9a84c88' : '#2a2a38';
+      ctx2d.lineWidth = i === hi ? 1.5 : 0.5;
+      ctx2d.stroke();
+
+      ctx2d.save();
+      ctx2d.translate(cx, cy);
+      ctx2d.rotate(mid);
+      ctx2d.textAlign = 'right';
+      ctx2d.fillStyle = (i === hi || i % 2 === 0) ? '#c9a84c' : '#a09a8e';
+      ctx2d.font = (i === hi ? 'bold ' : '') + '10.5px DM Mono, monospace';
+      const name = segments[i];
+      ctx2d.fillText(name.length > 17 ? name.slice(0, 16) + '…' : name, r - 12, 4);
+      ctx2d.restore();
+    }
+
+    // Tick marks
+    for (let i = 0; i < n; i++) {
+      const angle = currentAngle + i * arc;
+      ctx2d.save();
+      ctx2d.translate(cx, cy);
+      ctx2d.rotate(angle);
+      ctx2d.strokeStyle = '#c9a84c44';
+      ctx2d.lineWidth = 1;
+      ctx2d.beginPath();
+      ctx2d.moveTo(r - 5, 0);
+      ctx2d.lineTo(r + 1, 0);
+      ctx2d.stroke();
+      ctx2d.restore();
+    }
+
+    // Outer ring
+    ctx2d.beginPath();
+    ctx2d.arc(cx, cy, r, 0, 2 * Math.PI);
+    ctx2d.strokeStyle = '#3a3a4a';
+    ctx2d.lineWidth = 1.5;
+    ctx2d.stroke();
+
+    // Center hub
+    ctx2d.beginPath();
+    ctx2d.arc(cx, cy, 22, 0, 2 * Math.PI);
+    ctx2d.fillStyle = '#0b0b0f';
+    ctx2d.fill();
+    ctx2d.strokeStyle = '#c9a84c';
+    ctx2d.lineWidth = 1.5;
+    ctx2d.stroke();
+
+    ctx2d.beginPath();
+    ctx2d.arc(cx, cy, 5, 0, 2 * Math.PI);
+    ctx2d.fillStyle = '#c9a84c';
+    ctx2d.fill();
+  }
+
+  function winnerIndex() {
+    const n = segments.length;
+    const arc = (2 * Math.PI) / n;
+    let rel = ((-Math.PI / 2 - currentAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+    return Math.floor(rel / arc) % n;
+  }
+
+  function pickSegments() {
+    const unvisited = COUNTRIES.filter(c => !visited[c]);
+    const pool = unvisited.length >= N_SEG ? unvisited : COUNTRIES;
+    return [...pool].sort(() => Math.random() - 0.5).slice(0, N_SEG);
+  }
+
+  function spin() {
+    if (spinning) return;
+    winner = null;
+    document.querySelectorAll('.country-item.highlighted').forEach(el => el.classList.remove('highlighted'));
+    document.getElementById('result-box').classList.remove('show');
+    document.getElementById('spin-btn').disabled = true;
+
+    segments = pickSegments();
+
+    const totalRot = (6 + Math.random() * 6) * 2 * Math.PI + Math.random() * 2 * Math.PI;
+    const duration = 4200 + Math.random() * 1200;
+    const startAngle = currentAngle;
+    const t0 = performance.now();
+
+    function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
+
+    function frame(now) {
+      const t = Math.min((now - t0) / duration, 1);
+      currentAngle = startAngle + totalRot * easeOut(t);
+      drawWheel();
+      if (t < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        spinning = false;
+        document.getElementById('spin-btn').disabled = false;
+        const idx = winnerIndex();
+        winner = segments[idx];
+        drawWheel(idx);
+        showResult();
+      }
+    }
+
+    spinning = true;
+    requestAnimationFrame(frame);
+  }
+
+  function showResult() {
+    const box = document.getElementById('result-box');
+    const markBtn = document.getElementById('mark-btn');
+    document.getElementById('result-country').textContent = (FLAGS[winner] || '') + '  ' + winner;
+    box.classList.add('show');
+
+    if (visited[winner]) {
+      markBtn.textContent = 'Already visited ✓';
+      markBtn.className = 'mark-btn already';
+    } else {
+      markBtn.textContent = 'Mark as visited';
+      markBtn.className = 'mark-btn';
+    }
+
+    document.querySelectorAll('.country-item').forEach(el => {
+      if (el.dataset.name === winner.toLowerCase()) {
+        el.classList.add('highlighted');
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+      }
+    });
+  }
+
+  function markWinner() {
+    if (!winner || visited[winner]) return;
+    openModal(winner);
+  }
+
+  function updateProgress() {
+    const n = Object.values(visited).filter(Boolean).length;
+    document.getElementById('count').innerHTML = `${n} <span>/ 195</span>`;
+    document.getElementById('bar').style.width = (n / 195 * 100) + '%';
+  }
+
+  function buildGrid() {
+    const grid = document.getElementById('grid');
+    COUNTRIES.forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'country-item' + (visited[c] ? ' visited' : '');
+      item.dataset.name = c.toLowerCase();
+      item.innerHTML = `<div class="checkmark"></div><span class="country-flag">${FLAGS[c] || ''}</span><span class="country-name">${c}</span><span class="country-meta"><span class="has-notes-dot"></span></span>`;
+      if (meals[c] && (meals[c].description || (meals[c].photos && meals[c].photos.length))) {
+        item.classList.add('has-notes');
+      }
+      item.addEventListener('click', () => openModal(c));
+      grid.appendChild(item);
+    });
+    updateProgress();
+  }
+
+  document.getElementById('search').addEventListener('input', function () {
+    const q = this.value.toLowerCase().trim();
+    document.querySelectorAll('.country-item').forEach(el => {
+      el.classList.toggle('hidden', q && !el.dataset.name.includes(q));
+    });
+  });
+
+  buildGrid();
+  segments = pickSegments();
+  drawWheel();
+  attachListeners();
+</script>
+</body>
+</html>
